@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Listagem de Dados</title>
+</head>
+<body>
+  <h1>Listagem de Dados</h1>
+  <ul id="dados-lista"></ul> 
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJG6BDZpCWUCuPrk5cRO9BEAUE2hKmjto",
+      authDomain: "prjcatraca.firebaseapp.com",
+      databaseURL: "https://prjcatraca-default-rtdb.firebaseio.com",
+      projectId: "prjcatraca",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const ref = database.ref("/");
+
+  
+    function formatarDataHora(chave) {
+      const regex = /^\d{8}_\d{6}$/;
+      if (!regex.test(chave)) return chave;
+
+      const ano = chave.substring(0, 4);
+      const mes = chave.substring(4, 6);
+      const dia = chave.substring(6, 8);
+      const hora = chave.substring(9, 11);
+      const minuto = chave.substring(11, 13);
+      const segundo = chave.substring(13, 15);
+
+      const dataUTC = new Date(Date.UTC(ano, mes - 1, dia, hora, minuto, segundo));
+      const opcoes = { timeZone: 'America/Sao_Paulo', hour12: false };
+      return dataUTC.toLocaleString('pt-BR', opcoes);
+    }
+
+    ref.once("value").then(snapshot => {
+      const dados = snapshot.val();
+      const lista = document.getElementById("dados-lista");
+
+      if (dados) {
+        Object.entries(dados).forEach(([chave, valor]) => {
+          const li = document.createElement("li");
+
+          const titulo = document.createElement("strong");
+          titulo.textContent = chave + ":";
+          li.appendChild(titulo);
+
+          const subLista = document.createElement("ul");
+
+          Object.entries(valor).forEach(([subChave, subValor]) => {
+            const subItem = document.createElement("li");
+
+            if (typeof subValor === 'object' && subValor !== null) {
+              const subSubLista = document.createElement("ul");
+              Object.entries(subValor).forEach(([campo, conteudo]) => {
+                const campoLi = document.createElement("li");
+                campoLi.textContent = `${campo}: ${conteudo}`;
+                subSubLista.appendChild(campoLi);
+              });
+
+              const chaveFormatada = formatarDataHora(subChave);
+              subItem.textContent = chaveFormatada;
+              subItem.appendChild(subSubLista);
+            } else {
+              subItem.textContent = `${subChave}: ${subValor}`;
+            }
+
+            subLista.appendChild(subItem);
+          });
+
+          li.appendChild(subLista);
+          lista.appendChild(li);
+        });
+      } else {
+        lista.innerHTML = "<li>Nenhum dado encontrado.</li>";
+      }
+    }).catch(error => {
+      console.error("Erro ao ler dados:", error);
+    });
+  </script>
+</body>
+</html>
